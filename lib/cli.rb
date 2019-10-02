@@ -27,7 +27,7 @@ class CommandLineInterface
     user_identity = prompt.select("Let's begin") do |user|
         user.choice "Login", -> {login}
         user.choice "SignUp", -> {signup}
-        user.choice "Exit App", -> {exit}
+        user.choice "Exit", -> {exit}
       end
   end
 
@@ -43,31 +43,17 @@ class CommandLineInterface
     end
 
     # Checking existing accounts
-    if user_type == "Investor"
-      if User.exists?(username: username_input)
-        puts "This name is taken"
-        respond = prompt.select("Would you like to login?", %w(Yes No exit))
-        if respond == "Yes"
-          login
-        elsif respond == "No"
-          signup
-        elsif respond == "exit"
-          exit
-        end
-    end
-    elsif user_type == "Developer"
-      if Developer.exists?(username: username_input)
-        puts "This name is taken"
-        respond = prompt.select("Would you like to login?", %w(Yes No exit))
-        if respond == "Yes"
-          login
-        elsif respond == "No"
-          signup
-        elsif respond == "exit"
-          exit
+    if User.exists?(username: username_input) && Developer.exists?(username: username_input)
+      puts "This name is taken"
+      respond = prompt.select("Would you like to login?", %w(Yes No exit))
+      if respond == "Yes"
+        login
+      elsif respond == "No"
+        signup
+      elsif respond == "exit"
+        exit
       end
      end
-    end
 
     puts "Please create your password"
     password_input = prompt.mask("Password:")
@@ -77,10 +63,10 @@ class CommandLineInterface
     end
 
     puts "What is your initial funds?"
-    capital_input = prompt.ask("Capital:")
-    while capital_input == nil
+    capital_input = prompt.ask("Capital:").strip.to_i
+    while capital_input != Integer && capital_input <= 100
       puts "You can survive here without money!"
-      capital_input = prompt.ask("Capital:")
+      capital_input = prompt.ask("Capital:").strip.to_i
     end
 
     # Creating objects
@@ -95,18 +81,20 @@ class CommandLineInterface
 
   # Login function
   def login
-    puts "Welcome to marketplace, please provide your credentials"
-
+    puts "Welcome to AI marketplace, please provide your credentials"
     user_type = prompt.select("Choose type of account?", ["Investor", "Developer"])
     puts "Enter username"
     username_input = prompt.ask("Username:")
     while username_input == nil
       puts "Username field can't be blank"
-      puts "Enter username"
       username_input = prompt.ask("Username:")
     end
     puts "Enter password"
     password_input = prompt.mask("Password:")
+    while password_input == nil
+      puts "Password can't be blank"
+      password_input = prompt.ask("Password")
+    end
 
     # Checking what type of account user have
 
@@ -139,11 +127,12 @@ class CommandLineInterface
     developers_money = Developer.all.select{|developer|developer}.map{|d| d.capital}.sum
     puts "\nSize of the whole pie is $#{investors_money + developers_money}. Would you like a piece?\n"
 
-    puts "\nYour capitalization: #{user_object.capital}\n"
+    puts "\nYour capitalization: $#{user_object.capital}\n"
 
     # Menu customized according to user type
+
     if user_object.user_type == "Investor"
-      prompt.select("\nWhat is your next move?\n") do |user|
+      prompt.select("What is your next move?") do |user|
           user.choice "Solve problem", -> {solve_problem(user_object)}
           user.choice "My problems", -> {my_problems(user_object)}
           user.choice "See AI marketplace", -> {marketplace(user_object)}
@@ -166,8 +155,10 @@ class CommandLineInterface
   # Display what problems user tried to solve
 
   def my_problems(user_object)
-    problems = Problem.all.select {|p| p.user_id == user_object.id}.each {|t| puts "Problem: #{t.title}, Field: #{t.field}, Status: #{t.status}."}
-
+    problems = user_object.problems.each {|t| puts "Problem: #{t.title}, Field: #{t.field}, Status: #{t.status}."}
+    if problems == []
+      puts "Dear #{user_object.username}, you don't have any problems."
+    end
     prompt.select("") do |menu|
       menu.choice "Back to main menu", -> {main_menu(user_object)}
     end
@@ -208,7 +199,7 @@ class CommandLineInterface
     #############
 
     # solving process, 30% chances of fail
-    ai_names = ai_object.name
+    # ai_names = ai_object.name
     ai_price = ai_object.price
 
     user_capital = user_object.capital
@@ -268,17 +259,17 @@ class CommandLineInterface
     sleep(3)
     login_signup
   end
-  
+
 #################### Developer
 
-  # Creat AI
+  # Creat new AI
 
   def create_ai(user_object)
-    input_name = prompt.ask("Name your AI? ")
-    while input_name == nil
+    name_input = prompt.ask("Name your AI? ")
+    while name_input == nil
       puts "Nameless AI? Nonsense!"
-      input_name = prompt.ask("Name your AI? ")
-    if Ai.exists?(username: username_input)
+      name_input = prompt.ask("Name your AI? ")
+    if Ai.exists?(name: name_input)
       puts "This name is taken\n"
       create_ai(user_object)
     end
@@ -332,8 +323,8 @@ class CommandLineInterface
 
   def my_ais_problems(user_object)
     # "where" return an instance of ActiveRecord::Relation
-    ai_object = Ai.where(developer_id: user_object.id)
-    problem_object = Problem.where(ai_id: ai_object.ids)
+
+    problem_object = user_object.problems
 
     puts "Here is problems your AI's worked on\n"
     problem_object.each{|p| puts "Title: #{p.title}, Fiedl: #{p.field} Status: #{p.status} AI: #{p.ai.name}"}
@@ -346,7 +337,9 @@ class CommandLineInterface
   # Display all AIs developer created
 
   def my_ais(user_object)
-    ai_object = Ai.all.select{|i|i.developer_id == user_object.id}.each{|ai| puts "Name: #{ai.name}, Field: #{ai.specialization}, Price:  #{ai.price}."}
+    ai_object = user_object.ais.where(developer_id: user_object.id).each{|ai| puts "Name: #{ai.name}, Field: #{ai.specialization}, Price:  #{ai.price}."}
+
+    # ai_object = user_object.ais.select{|i|i.developer_id == user_object.id}.each{|ai| puts "Name: #{ai.name}, Field: #{ai.specialization}, Price:  #{ai.price}."}
 
     prompt.select("") do |menu|
       menu.choice "Back to main menu", -> {main_menu(user_object)}
@@ -357,7 +350,7 @@ class CommandLineInterface
 
   def delete_ai(user_object)
     # "where" return an instance of ActiveRecord::Relation
-    ai_objects = Ai.where(developer_id: user_object.id)
+    ai_objects = user_object.ais.where(developer_id: user_object.id)
 
     ai_names = ai_objects.map{|i| i.name}.join(",")
 

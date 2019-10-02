@@ -3,7 +3,7 @@ require "tty-prompt"
 require_relative '../config/environment'
 
 # DATA SEEDS IF NEEDED
-
+# 
 # User.destroy_all
 # Ai.destroy_all
 # Problem.destroy_all
