@@ -3,7 +3,7 @@ require "tty-prompt"
 require_relative '../config/environment'
 
 # DATA SEEDS IF NEEDED
-# 
+#
 # User.destroy_all
 # Ai.destroy_all
 # Problem.destroy_all
@@ -22,6 +22,9 @@ require_relative '../config/environment'
 #
 # Problem.create(title: "Cure aging", field: "medicine", status: "solved", user_id: investor1.id, ai_id: ai1.id)
 # Problem.create(title: "Gender equality", field: "social", status: "solved", user_id: investor2.id, ai_id: ai3.id)
+# Problem.create(title: "End poverty", field: "social", status: "solved", user_id: investor1.id, ai_id: ai4.id)
+# Problem.create(title: "Take care of Russia", field: "military", status: "solved", user_id: investor2.id, ai_id: ai2.id)
+#
 #
 # puts "Data seeded!"
 

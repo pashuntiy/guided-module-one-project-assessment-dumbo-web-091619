@@ -2,6 +2,7 @@ require 'tty-prompt'
 
 class CommandLineInterface
   attr_reader :prompt
+  attr_accessor :user
 
 
   def initialize
@@ -207,12 +208,14 @@ class CommandLineInterface
     status = ""
     profit = 0
 
+    # Calculating profits and losses
+
       if rand_number == 5 && 7 && 2
         status = "failed"
-        profit = user_capital - ai_price
+        outcom = user_capital - ai_price
       else
         status = "solved"
-        profit = ai_price * 0.3
+        outcom = user_capital +(ai_price * 0.3)
     end
 
     #checking if investor has enough capital
@@ -224,7 +227,7 @@ class CommandLineInterface
       main_menu(user_object)
     else
       #actual creation problem
-      Problem.create(title: input_title, field: input_field, status: status, user_id: user_id, ai_id: ai_object.id)
+      user_object.problems.create(title: input_title, field: input_field, status: status, user_id: user_id, ai_id: ai_object.id)
       if status == "solved"
         puts "Problem #{input_title} sucessfuly solved!"
         sleep(3)
@@ -235,10 +238,8 @@ class CommandLineInterface
         sleep(3)
       end
     end
-
-    # calculating profit or loses and update capital value of the investor
-    profit += user_capital
-    user_object.update(capital: profit)
+    # Updating user capital
+    user_object.update(capital: outcom)
     main_menu(user_object)
   end
 
@@ -281,10 +282,10 @@ class CommandLineInterface
       input_specialization = prompt.ask("In what field your AI specialized?")
     end
 
-    input_price = prompt.ask("How much you want for this AI?")
-    while input_price == nil and input_price.is_a? Integer == false
+    input_price = prompt.ask("How much you want for this AI?").strip.to_i
+    while input_price != Integer && input_price <= 50
       puts "You do want to make money, right?"
-      input_price = prompt.ask("How much you want for this AI?")
+      input_price = prompt.ask("How much you want for this AI?").strip.to_i
     end
 
     rand_number = rand(1..10)
@@ -301,14 +302,12 @@ class CommandLineInterface
         sleep(2)
         puts "Go and study!!!"
         sleep(2)
-        puts "You pathetic piece of meat!"
-        sleep(1)
         puts "You just lost $#{100} by the way!"
       else
         status = "solved"
         sleep(1)
-        puts "AI #{input_name} was successfully created!"
-        Ai.create(name: input_name, specialization: input_specialization, price: input_price, developer_id: user_object.id)
+        puts "AI #{name_input} was successfully created!"
+        user_object.ais.create(name: name_input, specialization: input_specialization, price: input_price, developer_id: user_object.id)
       end
 
       expences = capital  - 100
@@ -351,7 +350,11 @@ class CommandLineInterface
   def delete_ai(user_object)
     # "where" return an instance of ActiveRecord::Relation
     ai_objects = user_object.ais.where(developer_id: user_object.id)
-
+    if ai_objects == []
+      puts "You didn't create any AI yet"
+      sleep(2)
+      main_menu(user_object)
+    end
     ai_names = ai_objects.map{|i| i.name}.join(",")
 
     ai_chose = prompt.select("Choose your AI", ai_names.split(","))
