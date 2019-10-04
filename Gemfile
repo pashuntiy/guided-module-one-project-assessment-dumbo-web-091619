@@ -9,4 +9,5 @@ gem "faker"
 gem "activerecord", "~> 5.2.3"
 gem "tty-prompt"
 gem "bcrypt", "~> 3.1.7"
-
+gem 'rmagick', '~> 4.0'
+gem 'tco', '~> 0.1.8'

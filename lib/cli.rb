@@ -1,31 +1,60 @@
 require 'tty-prompt'
+require "tco"
+require "rmagick"
 
 class CommandLineInterface
   attr_reader :prompt
-  attr_accessor :user
-
 
   def initialize
     @prompt = TTY::Prompt.new
   end
 
   def run
+    background_music
+    greetings_img
     greetings
     login_signup
   end
 
+  def background_music
+    file = "/Users/flatironbrooklyn/Development/code/mode1/guided-module-one-project-assessment-dumbo-web-091619/bin/Brutal Pony Riders - Cyberpunk 2077.mp3"
+    play = fork{ exec 'mpg123','-q', file }
+    play
+  end
+
+  def greetings_img
+    sleep(1)
+    img = Magick::Image::read("/Users/flatironbrooklyn/Development/code/mode1/guided-module-one-project-assessment-dumbo-web-091619/bin/123.png").first
+    i = 1
+    if i > 0
+      img.each_pixel do |pixel, col, row|
+        i = i - 1
+        c = [pixel.red, pixel.green, pixel.blue].map { |v| 256 * (v / 65535.0) }
+        print("  ".bg c)
+        puts if col >= 100
+      end
+    end
+  end
+
   def greetings
-      # puts "*******   Welcome to AI marketplace!   *******"
-      # sleep(2)
-      # puts "******* With gidence of our superintellegent overlords ******* "
-      # sleep(2)
-      # puts "*******  We can build brighter tomorrow! *******"
-      # sleep(2)
+    sleep(1)
+    puts ""
+    puts "\nT800: ALTERNATE POWER\n"
+    puts ""
+    sleep(2)
+    puts "*******   Welcome to AI marketplace!   *******"
+    sleep(2)
+    puts "******* With gidence of our superintellegent overlords ******* "
+    sleep(2)
+    puts "*******  We can build brighter tomorrow! *******"
+    sleep(2)
+    puts ""
   end
 
   # First menu
   def login_signup
-    user_identity = prompt.select("Let's begin") do |user|
+
+    user_identity = prompt.select("\nLet's begin\n") do |user|
         user.choice "Login", -> {login}
         user.choice "SignUp", -> {signup}
         user.choice "Exit", -> {exit}
@@ -137,8 +166,9 @@ class CommandLineInterface
           user.choice "Solve problem", -> {solve_problem(user_object)}
           user.choice "My problems", -> {my_problems(user_object)}
           user.choice "See AI marketplace", -> {marketplace(user_object)}
+          user.choice "Change username", -> {change_user_name(user_object)}
           user.choice "Delete account", -> {delete_account(user_object)}
-          user.choice "Exit App", -> {exit}
+          user.choice "Exit", -> {exit}
         end
     elsif user_object.user_type == "Developer"
       prompt.select("What is your next move?") do |user|
@@ -146,9 +176,10 @@ class CommandLineInterface
           user.choice "My Ais", -> {my_ais(user_object)}
           user.choice "Problems my AI's worked on", -> {my_ais_problems(user_object)}
           user.choice "See AI marketplace", -> {marketplace(user_object)}
-          user.choice "Delete account", -> {delete_account(user_object)}
+          user.choice "Change username", -> {change_user_name(user_object)}
           user.choice "Delete AI", -> {delete_ai(user_object)}
-          user.choice "Exit App", -> {exit}
+          user.choice "Delete account", -> {delete_account(user_object)}
+          user.choice "Exit", -> {exit}
       end
     end
   end
@@ -226,7 +257,7 @@ class CommandLineInterface
       sleep(3)
       main_menu(user_object)
     else
-      #actual creation problem
+      # creation of problem
       user_object.problems.create(title: input_title, field: input_field, status: status, user_id: user_id, ai_id: ai_object.id)
       if status == "solved"
         puts "Problem #{input_title} sucessfuly solved!"
@@ -253,8 +284,21 @@ class CommandLineInterface
     end
   end
 
+  def change_user_name(user_object)
+    new_username = prompt.ask("Please enter new username: ")
+    while new_username == nil
+      puts "Username can't be blank"
+      new_username = prompt.ask("Please enter new username: ")
+    end
+    user_object.update(username: new_username)
+    puts "Dear #{user_object.username}, you name has been changed"
+    sleep(2)
+    main_menu(user_object)
+  end
+
   # removing account from database (developer or investor, depence on the "user_object" value)
   def delete_account(user_object)
+    user_object.problems.each{|i| i.destroy}
     user_object.destroy
     puts ("Your accout has been deleted. You are too weak to take over the world!")
     sleep(3)
@@ -266,7 +310,7 @@ class CommandLineInterface
   # Creat new AI
 
   def create_ai(user_object)
-    name_input = prompt.ask("Name your AI? ")
+    name_input = prompt.ask("Name your AI?")
     while name_input == nil
       puts "Nameless AI? Nonsense!"
       name_input = prompt.ask("Name your AI? ")
